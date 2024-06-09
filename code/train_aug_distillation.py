@@ -8,7 +8,8 @@ from evoaug_tf import evoaug, augment
 import evoaug_custom
 import utils
 from model_zoo import DeepSTARR
-
+import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 #-----------------------------------------------------------------------------------------
 
 downsamples = [1, 0.75, 0.5, 0.25]
