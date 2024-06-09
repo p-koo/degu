@@ -45,7 +45,6 @@ class AugModel(keras.Model):
         y_hat = self.model(inputs, training=training)
         return y_hat
     
-    @tf.function
     def train_step(self, data):
         if len(data) == 3:
             x, y, sample_weight = data
