@@ -3,6 +3,7 @@ import numpy as np
 import gc
 from six.moves import cPickle
 import heteroscedastic
+from tensorflow import keras
 
 #--------------------------------------------------------------------------------
 # set up params
