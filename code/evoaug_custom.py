@@ -45,6 +45,7 @@ class AugModel(keras.Model):
         y_hat = self.model(inputs, training=training)
         return y_hat
     
+    @tf.function
     def train_step(self, data):
         if len(data) == 3:
             x, y, sample_weight = data
@@ -61,12 +62,12 @@ class AugModel(keras.Model):
             x_mut = self._apply_augment(x)
             y_mut = []
             for model in self.model_ensemble:
-                y_mut.append(model.predict(x), verbose=False)
+                y_mut.append(model(x_mut, training=False))
             y_mut = tf.math.reduce_mean(tf.stack(y_mut, axis=0), axis=0)
 
         if concat:
-            x = tf.concat([x, x_mut])
-            y = tf.concat([y, y_mut])
+            x = tf.concat([x, x_mut], axis=0)
+            y = tf.concat([y, y_mut], axis=0)
         else:
             y = y_mut
             x = x_mut
