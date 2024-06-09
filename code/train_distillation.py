@@ -4,6 +4,7 @@ from six.moves import cPickle
 import gc
 import utils
 from model_zoo import DeepSTARR
+from tensorflow import keras
 
 #-----------------------------------------------------------------------------------------
 
