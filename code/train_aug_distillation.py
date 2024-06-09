@@ -67,7 +67,7 @@ for downsample in downsamples:
 
         ensemble_models = []
         for trial in range(num_trials):
-            weight_path = os.path.join(results_path, save_prefix_old + '_' + str(downsample) + '_' + str(trial) + '.h5')
+            weight_path = os.path.join(results_path, save_prefix_old + '_' + str(downsample) + '_' + str(trial) + '_finetune.h5')
             model = DeepSTARR(input_shape=(L,A))
             model.compile(keras.optimizers.Adam(learning_rate=0.001), loss='mse') 
             model.load_weights(weight_path)
