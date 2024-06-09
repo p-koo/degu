@@ -135,7 +135,6 @@ for trial in range(num_trials):
 
     savename = os.path.join(results_path, save_prefix_old + '_' + str(trial) + '.h5')
     model = DeepSTARR(input_shape=(L,A))
-    model.compile(keras.optimizers.Adam(learning_rate=0.001), loss=loss) 
     model.load_weights(weight_path)
 
     # generate predictions
@@ -161,8 +160,7 @@ for trial in range(num_trials):
     savename = os.path.join(results_path, save_prefix+'_'+str(trial))
     print(savename)
 
-    inputs, outputs = DeepSTARR(input_shape=(L,A))
-    model = keras.Model(inputs=inputs, outputs=outputs)
+    model = DeepSTARR(input_shape=(L,A))
     model.compile(keras.optimizers.Adam(learning_rate=0.001), loss=loss)
     history = model.fit(x_train, y_train,
                         epochs=epochs,
