@@ -81,6 +81,7 @@ pred = model.predict(x_test, batch_size=batch_size)
 mse, pearsonr, spearmanr = utils.summary_statistics(pred,  y_test, index=0)
 with open(save_prefix_old + '_ensemble.pickle', 'wb') as fout:
     cPickle.dump([mse, pearsonr, spearmanr], fout)
+    cPickle.dump(pred, fout)
 
 ##########################################################################################
 # Train distilled models based on ensemble labels
