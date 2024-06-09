@@ -9,6 +9,7 @@ import evoaug_custom
 import tensorflow as tf
 from tensorflow import keras
 import utils
+from model_zoo import DeepSTARR
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 #--------------------------------------------------------------------------------

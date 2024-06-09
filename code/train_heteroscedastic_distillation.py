@@ -4,6 +4,7 @@ import gc
 from six.moves import cPickle
 import heteroscedastic
 import utils
+from model_zoo import DeepSTARR
 from tensorflow import keras
 
 #--------------------------------------------------------------------------------

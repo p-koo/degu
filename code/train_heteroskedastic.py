@@ -5,6 +5,7 @@ from six.moves import cPickle
 import heteroscedastic
 import utils
 from tensorflow import keras
+from model_zoo import DeepSTARR
 
 #--------------------------------------------------------------------------------
 # set up params
