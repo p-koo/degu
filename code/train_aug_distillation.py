@@ -14,8 +14,8 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 downsamples = [1, 0.75, 0.5, 0.25]
 num_trials = 5
-save_prefix = 'aug'
-save_prefix_old = 'evoaug'  # or 'deepstarr'
+save_prefix = 'deepstarr_distill_aug'
+save_prefix_old = 'deepstarr'  # or 'deepstarr'
 
 batch_size = 100
 epochs = 100
@@ -68,7 +68,7 @@ for downsample in downsamples:
 
         ensemble_models = []
         for trial in range(num_trials):
-            weight_path = os.path.join(results_path, save_prefix_old + '_' + str(downsample) + '_' + str(trial) + '_finetune.h5')
+            weight_path = os.path.join(results_path, save_prefix_old + '_' + str(downsample) + '_' + str(trial) + '.h5')
             model = DeepSTARR(input_shape=(L,A))
             model.compile(keras.optimizers.Adam(learning_rate=0.001), loss='mse') 
             model.load_weights(weight_path)
