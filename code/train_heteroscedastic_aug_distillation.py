@@ -6,6 +6,8 @@ import heteroscedastic
 import evoaug_tf
 from evoaug_tf import evoaug, augment
 import evoaug_custom
+import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 #--------------------------------------------------------------------------------
 # set up params

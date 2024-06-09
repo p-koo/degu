@@ -6,6 +6,8 @@ import evoaug_tf
 from evoaug_tf import evoaug, augment
 import utils
 from model_zoo import DeepSTARR
+import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 #-----------------------------------------------------------------------------------------
 
