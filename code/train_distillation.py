@@ -60,7 +60,6 @@ for downsample in downsamples:
     pred = np.mean(np.array(pred), axis=0)
 
     # run for each set and enhancer type
-    pred = model.predict(x_test, batch_size=batch_size)
     mse, pearsonr, spearmanr = utils.summary_statistics(pred,  y_test, index=0)
     mse2, pearsonr2, spearmanr2 = utils.summary_statistics(pred,  y_test, index=1)
     with open(save_prefix_old + '_' + str(downsample) + '_ensemble.pickle', 'wb') as fout:
