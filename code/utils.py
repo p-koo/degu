@@ -15,7 +15,7 @@ def summary_statistics(pred, y, index):
 
 
 def load_deepstarr(filepath):
-    dataset = h5py.File('deepstarr_data.h5', 'r')
+    dataset = h5py.File(filepath, 'r')
     x_train = np.array(dataset['x_train']).astype(np.float32)
     y_train = np.array(dataset['y_train']).astype(np.float32).transpose()
     x_valid = np.array(dataset['x_valid']).astype(np.float32)
