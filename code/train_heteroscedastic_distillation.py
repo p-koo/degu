@@ -21,7 +21,7 @@ elif loss_name == 'cauchy':
 
 num_trials = 5
 save_prefix = 'distilled_'+task+'_'+loss_name
-save_prefix = 'deepstarr_'+task+'_'+loss_name
+save_prefix_old = 'deepstarr_'+task+'_'+loss_name
 
 batch_size = 100
 epochs = 100
