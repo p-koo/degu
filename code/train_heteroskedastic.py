@@ -80,7 +80,6 @@ for trial in range(num_trials):
     pred = model.predict(x_test, batch_size=batch_size)
     mse, pcc, scc = summary_statistics(pred, y_test, task='mean', index=0)
     with open(savename+'.pickle', 'wb') as fout:
-        cPickle.dump([mse, pcc, scc], fout)
-        cPickle.dump(pred, fout)
-        
+        cPickle.dump([mse, pcc, scc], fout)      
+        cPickle.dump(pred, fout)  
 
