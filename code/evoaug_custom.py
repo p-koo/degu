@@ -28,7 +28,7 @@ class AugModel(keras.Model):
         self.finetune = finetune
         self.kwargs = kwargs
         self.model_ensemble = model_ensemble
-        
+        self.concat = concat 
         if input_shape is not None:
             self.build_model(input_shape)
 
@@ -65,7 +65,7 @@ class AugModel(keras.Model):
                 y_mut.append(model(x_mut, training=False))
             y_mut = tf.math.reduce_mean(tf.stack(y_mut, axis=0), axis=0)
 
-        if concat:
+        if self.concat:
             x = tf.concat([x, x_mut], axis=0)
             y = tf.concat([y, y_mut], axis=0)
         else:
