@@ -54,8 +54,8 @@ for downsample in downsamples:
 
         # evaluate model
         pred = model.predict(x_test, batch_size=batch_size)
-        mse_aug, pearsonr_aug, spearmanr_aug = utils.summary_statistics(pred,  y_test, index=0)
-        mse_aug2, pearsonr_aug2, spearmanr_aug2 = utils.summary_statistics(pred,  y_test, index=1)
+        mse, pearsonr, spearmanr = utils.summary_statistics(pred,  y_test, index=0)
+        mse2, pearsonr2, spearmanr2 = utils.summary_statistics(pred,  y_test, index=1)
         with open(savename + '.pickle', 'wb') as fout:
             cPickle.dump([mse, pearsonr, spearmanr], fout)
             cPickle.dump([mse2, pearsonr2, spearmanr2], fout)
