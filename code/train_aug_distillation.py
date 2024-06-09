@@ -2,6 +2,7 @@ import os
 import numpy as np
 from six.moves import cPickle
 import gc
+from tensorflow import keras
 import evoaug_tf
 from evoaug_tf import evoaug, augment
 import evoaug_custom
@@ -117,7 +118,7 @@ for downsample in downsamples:
             cPickle.dump([mse2, pearsonr2, spearmanr2], fout)
             cPickle.dump([mse_aug, pearsonr_aug, spearmanr_aug], fout)
             cPickle.dump([mse_aug2, pearsonr_aug2, spearmanr_aug2], fout)
-            cPickle.dump(pred fout)
+            cPickle.dump(pred, fout)
 
 
 

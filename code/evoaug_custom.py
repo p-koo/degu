@@ -1,9 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
-import evoaug
+from evoaug_tf import augment, evoaug
 
-
-class RandomShuffle(evoaug.augment.AugmentBase):
+class RandomShuffle(augment.AugmentBase):
     def __init__(self, axis=1):
         self.axis = axis
     
@@ -25,7 +24,7 @@ class AugModel(keras.Model):
         self.hard_aug = hard_aug
         self.inference_aug = inference_aug
         self.max_num_aug = len(augment_list)
-        self.insert_max = evoaug.evoaug.augment_max_len(augment_list)
+        self.insert_max = evoaug.augment_max_len(augment_list)
         self.finetune = finetune
         self.kwargs = kwargs
         self.model_ensemble = model_ensemble
@@ -37,7 +36,7 @@ class AugModel(keras.Model):
         # Add batch dimension to input shape2
         augmented_input_shape = [None] + list(input_shape)
         # Extend sequence lengths based on augment_list
-        augmented_input_shape[1] += evoaug.evoaug.augment_max_len(self.augment_list)
+        augmented_input_shape[1] += evoaug.augment_max_len(self.augment_list)
 
         self.model = self.model(augmented_input_shape[1:], **self.kwargs)
 
