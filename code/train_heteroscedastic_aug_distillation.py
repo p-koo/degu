@@ -71,7 +71,7 @@ N, L, A = x_valid.shape
 
 ensemble_models = []
 for trial in range(num_trials):
-    savename = os.path.join(results_path, save_prefix_old + '_' + str(trial) + '.h5')
+    weight_path = os.path.join(results_path, save_prefix_old + '_' + str(trial) + '.h5')
     model = DeepSTARR(input_shape=(L,A))
     model.compile(keras.optimizers.Adam(learning_rate=0.001), loss=loss) 
     model.load_weights(weight_path)
