@@ -90,7 +90,7 @@ for downsample in downsamples:
         keras.backend.clear_session()
         gc.collect()
 
-        savename = save_prefix + '_' + str(downsample) + '_' + str(trial)
+        savename = os.path.join(results_path, save_prefix + '_' + str(downsample) + '_' + str(trial))
         print(savename)
 
         ##########################################################################################

@@ -80,7 +80,6 @@ y_train = np.expand_dims(np.mean(np.array(y_new), axis=0)[:,0], axis=1)
 pred = np.mean(np.array(pred), axis=0)
 
 # run for each set and enhancer type
-pred = model.predict(x_test, batch_size=batch_size)
 mse, pearsonr, spearmanr = utils.summary_statistics(pred,  y_test, index=0)
 with open(save_prefix_old + '_ensemble.pickle', 'wb') as fout:
     cPickle.dump([mse, pearsonr, spearmanr], fout)
