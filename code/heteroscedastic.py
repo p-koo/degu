@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
-
+import numpy as np
 
 def gaussian_nll_loss(y_true, y_pred):
     mean = tf.expand_dims(y_pred[:,0], axis=1)
@@ -9,7 +9,8 @@ def gaussian_nll_loss(y_true, y_pred):
     # Calculate the negative log-likelihood
     mse = keras.losses.mean_squared_error(y_true, mean)
     variance = tf.exp(log_variance)
-    nll = 0.5 * (tf.math.log(2 * np.pi * variance) + mse / variance)
+    pi = tf.constant(3.141592653589)
+    nll = 0.5 * (tf.math.log(2 * pi * variance) + mse / variance)
 
     # Return the average NLL across the batch
     return tf.reduce_mean(nll)
@@ -33,10 +34,10 @@ def laplace_nll_loss(y_true, y_pred):
 def cauchy_nll_loss(y_true, y_pred):
     mu = tf.expand_dims(y_pred[:,0], axis=1)
     log_b = tf.expand_dims(y_pred[:,1], axis=1)
-
+    pi = tf.constant(3.141592653589)
     # Calculate the negative log-likelihood
     b = tf.exp(log_b)
-    nll = tf.math.log(np.pi * b) + tf.math.log(1 + tf.square((y_true - mu) / b))
+    nll = tf.math.log(pi * b) + tf.math.log(1 + tf.square((y_true - mu) / b))
 
     # Return the average NLL across the batch
     return tf.reduce_mean(nll)
