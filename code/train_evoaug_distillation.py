@@ -47,7 +47,7 @@ for downsample in downsamples:
     # load dataset
     filepath = '../data/deepstarr_data.h5'
     x_train, y_train, x_valid, y_valid, x_test, y_test = utils.load_deepstarr(filepath)
-    x_train, y_train = utils.downsample_trainset(x_train, y_train, downsample_frac, seed=12345)
+    x_train, y_train = utils.downsample_trainset(x_train, y_train, downsample, seed=12345)
     N, L, A = x_train.shape
 
     ##########################################################################################
