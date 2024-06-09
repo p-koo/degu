@@ -8,6 +8,7 @@ from evoaug_tf import evoaug, augment
 import evoaug_custom
 import tensorflow as tf
 from tensorflow import keras
+import utils
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 #--------------------------------------------------------------------------------
