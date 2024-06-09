@@ -17,7 +17,7 @@ class AugModel(keras.Model):
     
     def __init__(self, model_func, model_ensemble, input_shape=None, augment_list=[], max_augs_per_seq=2, 
                  hard_aug=False, finetune=False, inference_aug=False, concat=False, **kwargs):
-        super(RobustModel, self).__init__()
+        super(AugModel, self).__init__()
         self.model = model_func
         self.augment_list = augment_list
         self.max_augs_per_seq = tf.math.minimum(max_augs_per_seq, len(augment_list))
