@@ -14,7 +14,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 downsamples = [1, 0.75, 0.5, 0.25]
 num_trials = 5
-save_prefix = 'deepstarr_mut'
+save_prefix = 'deepstarr_random'
 save_prefix_old = 'deepstarr'  # or 'evoaug' or 'deepstarr'
 
 batch_size = 100
@@ -24,7 +24,7 @@ concat = False # add train batch + augmented train batch
 results_path = '../results/deepstarr'
 
 augment_list = [
-    augment.RandomMutation(mutate_frac=0.25)
+    augment.RandomMutation(mutate_frac=0.7)
 ]
 
 # early stopping callback
