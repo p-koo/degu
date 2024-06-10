@@ -63,8 +63,10 @@ class AugModel(keras.Model):
             y_mut = []
             for model in self.model_ensemble:
                 y_mut.append(model(x_mut, training=False))
-            y_mut = tf.math.reduce_mean(tf.stack(y_mut, axis=0), axis=0)
-
+            y_mut_mean = tf.math.reduce_mean(tf.stack(y_mut, axis=0), axis=0)
+            y_mut_std = tf.math.reduce_std(tf.stack(y_mut, axis=0), axis=0)
+            y_mut = tf.concat([y_mut_mean, y_mut_std], axis=1)
+            
         if self.concat:
             x = tf.concat([x, x_mut], axis=0)
             y = tf.concat([y, y_mut], axis=0)

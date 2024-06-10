@@ -2,8 +2,23 @@ import h5py
 import numpy as np
 from scipy import stats
 from sklearn.metrics import mean_squared_error
+import os 
 
-# create functions
+
+def make_directory(path, foldername, verbose=1):
+  """make a directory"""
+
+  if not os.path.isdir(path):
+    os.mkdir(path)
+    print("making directory: " + path)
+
+  outdir = os.path.join(path, foldername)
+  if not os.path.isdir(outdir):
+    os.mkdir(outdir)
+    print("making directory: " + outdir)
+  return outdir
+
+
 def summary_statistics(pred, y, index):
     mse = mean_squared_error(y[:,index], pred[:,index])
     pearsonr = stats.pearsonr(y[:,index], pred[:,index])[0]
@@ -12,6 +27,17 @@ def summary_statistics(pred, y, index):
     print(' PCC task ' + str(index) + ' = ' + str("{0:0.4f}".format(pearsonr)))
     print(' SCC task ' + str(index) + ' = ' + str("{0:0.4f}".format(spearmanr)))
     return mse, pearsonr, spearmanr 
+
+
+def load_lentiMPRA_data(filepath):
+    data = h5py.File(filepath, 'r')
+    x_train = np.array(data['Train']['X'])
+    y_train = np.array(data['Train']['y'])
+    x_test = np.array(data['Test']['X'])
+    y_test = np.array(data['Test']['y'])
+    x_valid = np.array(data['Val']['X'])
+    y_valid = np.array(data['Val']['y'])
+    return x_train, y_train, x_valid, y_valid, x_test, y_test
 
 
 def load_deepstarr(filepath):
