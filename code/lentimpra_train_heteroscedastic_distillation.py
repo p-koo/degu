@@ -43,7 +43,7 @@ reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss',
 #--------------------------------------------------------------------------------
 # load dataset
 
-filename = '../data/'+cell_type+'_data_with_aleatoric.h5'
+filepath = '../data/'+cell_type+'_data_with_aleatoric.h5'
 x_train, y_train, x_test, y_test, x_valid, y_valid = utils.load_lentiMPRA_data(filepath)
 N, L, A = x_valid.shape
 
