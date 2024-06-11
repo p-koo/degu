@@ -53,7 +53,9 @@ for downsample in downsamples:
     x_train, y_train, x_valid, y_valid, x_test, y_test = utils.load_deepstarr(filepath)
     x_train, y_train = utils.downsample_trainset(x_train, y_train, downsample, seed=12345)
     N, L, A = x_train.shape
-
+    y_valid = np.concatenate([y_valid, y_valid], axis=1)
+    y_test = np.concatenate([y_test, y_test], axis=1)
+        
     for trial in range(num_trials):
         keras.backend.clear_session()
         gc.collect()

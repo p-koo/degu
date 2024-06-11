@@ -39,6 +39,9 @@ for downsample in downsamples:
     x_train, y_train, x_valid, y_valid, x_test, y_test = utils.load_deepstarr(filepath)
     x_train, y_train = utils.downsample_trainset(x_train, y_train, downsample, seed=12345)
     N, L, A = x_train.shape
+    y_valid = np.concatenate([y_valid, y_valid], axis=1)
+    y_test = np.concatenate([y_test, y_test], axis=1)
+            
 
     ##############################################################################
     # Generate labels from ensemble of models
@@ -56,7 +59,7 @@ for downsample in downsamples:
         # generate predictions
         y_new.append(model.predict(x_train, batch_size=batch_size))
         pred.append(model.predict(x_test, batch_size=batch_size))
-    y_train = np.concatenate([np.mean(np.array(y_new), axis=0), np.std(np.array(y_new), axis=0)[:,:1]], axis=1)
+    y_train = np.concatenate([np.mean(np.array(y_new), axis=0), np.std(np.array(y_new), axis=0)], axis=1)
     pred = np.mean(np.array(pred), axis=0)
 
     # ensemble performance
