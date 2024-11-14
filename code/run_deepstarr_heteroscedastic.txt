@@ -1,6 +1,0 @@
-python train_heteroscedastic_distillation.py Dev gaussian
-python train_heteroscedastic_distillation.py Hk gaussian
-python train_heteroscedastic_distillation.py Dev cauchy 
-python train_heteroscedastic_distillation.py Hk cauchy
-python train_heteroscedastic_distillation.py Dev laplace
-python train_heteroscedastic_distillation.py Hk laplace

@@ -1,2 +1,0 @@
-download data here:
-wget https://www.dropbox.com/s/g7guotjybwf6p6r/deepstarr_data.h5
