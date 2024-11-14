@@ -1,29 +1,25 @@
+import tensorflow as tf 
+from tensorflow import keras 
+from scipy import stats
+from sklearn.metrics import mean_squared_error
 
 #-----------------------------------------------------------------------------
 # Useful functions
 #-----------------------------------------------------------------------------
 
-def log_var(x, axis=0):
+def logvar(x, axis=0):
     return tf.math.log(tf.math.reduce_variance(x, axis=axis))
 
 def std(x, axis=0):
     return tf.math.reduce_std(x, axis=axis)
-
-def log_var_np(x, axis=0):
-    return np.log(np.var(x, axis=axis))
-
-def std_np(x, axis=0):
-    return np.std(x, axis=axis)
-
 
 #-----------------------------------------------------------------------------
 # Trainging functions
 #-----------------------------------------------------------------------------
 
 
-def train_fun(model, x_train, y_train, validation_data, save_prefix,
-                         max_epochs=100, batch_size=100, es_patience=10, 
-                         lr_decay=0.1, lr_patience=5):
+def train_fun(model, x_train, y_train, validation_data, save_prefix, max_epochs=5, 
+              batch_size=100, es_patience=10, lr_decay=0.1, lr_patience=5):
 
     # early stopping callback
     es_callback = keras.callbacks.EarlyStopping(monitor='val_loss',
@@ -64,8 +60,8 @@ def setup_dynamic_student_model(model_fun, input_shape, augment_list,
 def train_dynamic_aug_fun(model, x_train, y_train, validation_data, save_prefix, 
                           finetune_lr=0.0001, loss='mse'):
 
-    save_path = save_prefix+'_aug.weights.h5'
-    deepstarr_train_fun(model, x_train, y_train, validation_data, save_path)
+    save_path = save_prefix+'_aug'
+    history = train_fun(model, x_train, y_train, validation_data, save_path)
 
     # settings for finetuning
     finetune_optimizer = keras.optimizers.Adam(learning_rate=finetune_lr)
@@ -82,7 +78,7 @@ def train_dynamic_aug_fun(model, x_train, y_train, validation_data, save_prefix,
     model_path = save_path+'_finetune.weights.h5'
     model.save_weights(model_path)
 
-    return model, model_path, [history.history, history2.history]
+    return model, model_path, [history, history2.history]
 
 
 def eval_regression(pred, y):
@@ -98,6 +94,4 @@ def eval_regression(pred, y):
         print('Task %d  SCC = %.4f'%(i, spearmanr))
         results.append([mse, pearsonr, spearmanr])
     return results
-
-
 

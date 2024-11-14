@@ -1,5 +1,4 @@
-from scipy import stats
-from sklearn.metrics import mean_squared_error
+from tensorflow import keras 
 
 def DeepSTARR(input_shape=(249,4), output_shape=2):
     "DeepSTARR model from deAlmeida et al. Nat Genetics (2022)"

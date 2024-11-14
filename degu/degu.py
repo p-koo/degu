@@ -1,6 +1,7 @@
 import tensorflow as tf
+from tensorflow import keras 
 import numpy as np
-from . import utils
+import gc 
 
 #-----------------------------------------------------------------------------
 # DEGU classes
@@ -8,7 +9,7 @@ from . import utils
 
 class DEGU():
 
-    def __init__(self, ensembler, uncertainty_fun=uncertainty_logvar):
+    def __init__(self, ensembler, uncertainty_fun=logvar):
         self.ensembler = ensembler
         self.num_ensemble = ensembler.num_ensemble
         self.uncertainty_fun = uncertainty_fun
@@ -16,7 +17,7 @@ class DEGU():
 
     def pred_ensemble(self, x, batch_size=512):
         ensemble_mean, ensemble_uncertainty, all_preds = self.ensembler.pred_ensemble(x, batch_size)
-        return ensemble_mean, ensemble_uncertainty, preds
+        return ensemble_mean, ensemble_uncertainty, all_preds
 
 
     def eval_ensemble(self, x, y, eval_fun, batch_size=512):
@@ -26,7 +27,7 @@ class DEGU():
         standard_results = []
         for model_idx in range(self.num_ensemble):
             print('Model %d'%(model_idx + 1))
-            standard_results.append(eval_fun(preds[model_idx], y))
+            standard_results.append(eval_fun(all_preds[model_idx], y))
 
         # ensemble performance
         print('Ensemble')
@@ -35,38 +36,39 @@ class DEGU():
         return ensemble_results, standard_results
 
 
-    def distill_student_batch(self, student_model_fun, x_train, y_train, train_fun,
-                              save_prefix, validation_data, batch_size=512):
+    def distill_student_batch(self, x_train, y_train, student_model_fun, train_fun,
+                              save_prefix, validation_data, optimizer, loss, batch_size=512, 
+                              ):
 
         # generate new training labels based on ensemble
-        train_mean, train_unc = self.pred_ensemble(x_train, batch_size=batch_size)
-        y_train_ensemble = np.concatenate([train_mean, train_unc], axis=1)
+        train_mean, train_unc,_ = self.pred_ensemble(x_train, batch_size=batch_size)
+        y_train_ensemble = tf.concat([train_mean, train_unc], axis=1)
 
         # generate validation labels (original activity, ensemble uncertainty)
         x_valid, y_valid = validation_data
-        valid_mean, valid_unc = self.pred_ensemble(x_valid, batch_size=batch_size)
-        y_valid_ensemble = np.concatenate([y_valid, valid_unc], axis=1)
+        valid_mean, valid_unc,_ = self.pred_ensemble(x_valid, batch_size=batch_size)
+        y_valid_ensemble = tf.concat([y_valid, valid_unc], axis=1)
         validation_data = [x_valid, y_valid_ensemble]
 
-        model, model_path, history = train_fun(student_model_fun,
-                                               x_train, y_train_ensemble,
-                                               validation_data,
-                                               save_prefix)
+        model = student_model_fun()
+        model.compile(optimizer=optimizer, loss=loss)
 
-        return model, model_path, history
+        history = train_fun(model, x_train, y_train_ensemble, validation_data, save_prefix)
+        weights_path = save_prefix+'.weights.h5'
+        return model, weights_path, history
 
 
-    def distill_student_dynamic(self, student_model_fun, x_train, y_train, train_fun,
+    def distill_student_dynamic(self, x_train, y_train, student_model_fun, train_fun,
                         save_prefix, validation_data, batch_size=512):
 
         # generate new training labels based on ensemble
-        train_mean, train_unc = self.pred_ensemble(x_train, batch_size=batch_size)
-        y_train_ensemble = np.concatenate([train_mean, train_unc], axis=1)
+        train_mean, train_unc, _ = self.pred_ensemble(x_train, batch_size=batch_size)
+        y_train_ensemble = tf.concat([train_mean, train_unc], axis=1)
 
         # generate validation labels (original activity, ensemble uncertainty)
         x_valid, y_valid = validation_data
         valid_mean, valid_unc = self.pred_ensemble(x_valid, batch_size=batch_size)
-        y_valid_ensemble = np.concatenate([y_valid, valid_unc], axis=1)
+        y_valid_ensemble = tf.concat([y_valid, valid_unc], axis=1)
         validation_data = [x_valid, y_valid_ensemble]
 
         model, model_path, history = train_fun(student_model_fun,
@@ -77,7 +79,7 @@ class DEGU():
         return model, model_path, history
 
 
-    def eval_student(self, student_model, x, y, eval_fun, batch_size=512):
+    def eval_student(self, x, y, student_model, eval_fun, batch_size=512):
 
         # generate ensemble distribution stats
         test_mean, test_unc = self.pred_ensemble(x, batch_size=512)
@@ -94,14 +96,13 @@ class DEGU():
 
 
 
-
 #-----------------------------------------------------------------------------
 # Ensemble helper classes
 #-----------------------------------------------------------------------------
 
 class EnsemblerBase():
 
-    def __init__(self, base_model, weight_paths=[], uncertainty_fun=utils.log_var_np):
+    def __init__(self, base_model, weight_paths=[], uncertainty_fun=logvar):
 
         self.base_model = base_model
         self.weight_paths = weight_paths
@@ -119,52 +120,51 @@ class EnsemblerBase():
             self.base_model.load_weights(self.weight_paths[model_idx])
 
             # get predictions for model
-            preds.append(model.predict(x, batch_size=batch_size, verbose=False))
+            preds.append(self.base_model.predict(x, batch_size=batch_size, verbose=False))
 
         # calculate ensemble distribution
-        preds = np.array(preds)
-        ensemble_mean = np.mean(preds, axis=0)
+        preds = tf.stack(preds)
+        ensemble_mean = tf.reduce_mean(preds, axis=0)
         ensemble_uncertainty = self.uncertainty_fun(preds, axis=0)
         return ensemble_mean, ensemble_uncertainty, preds
 
 
-    def train_another_base_model(self, x_train, y_train, validation_data, train_fun, save_path):
-
-        print('Training model %d'%(self.num_ensemble + 1))
+    def train_another_base_model(self, x_train, y_train, validation_data, train_fun, save_prefix):
 
         # intitialize model
-        self._reinitialize_model_weights(self.base_model)
+        self._reinitialize_model_weights()
 
         # train model
-        history = train_fun(self.base_model, x_train, y_train, validation_data, save_path)
+        history = train_fun(self.base_model, x_train, y_train, validation_data, save_prefix)
 
         # save weights
-        self.teacher_base_model.save_weights(save_path)
         self.num_ensemble += 1
-        self.weight_paths.append(save_path)
+        self.weight_paths.append(save_prefix+'.weights.h5')
 
         return history
 
 
-    def train_ensemble(self, x_train, y_train, validation_data, train_fun, save_prefix):
+    def train_ensemble(self, x_train, y_train, num_ensemble, validation_data, train_fun, save_prefix):
+ 
+        self.num_ensemble = 0
         self.weight_paths = []
         ensemble_history = []
-        for model_idx in range(self.num_ensemble):
+        for model_idx in range(num_ensemble):
             print('Training model %d'%(model_idx + 1))
 
             # intitialize model
-            self._reinitialize_model_weights(self.base_model)
+            self._reinitialize_model_weights()
 
             # train model
-            save_path = save_prefix+'_'+str(model_idx)+'.weights.h5'
+            save_path = save_prefix+'_'+str(model_idx)
             history = self.train_another_base_model(x_train, y_train, validation_data, train_fun, save_path)
-            ensemble_history.append(history.history)
+            ensemble_history.append(history)
         return ensemble_history
 
 
-    def _reinitialize_model_weights(self, model):
+    def _reinitialize_model_weights(self):
         # reinitialize weights and biases for each layer
-        for layer in model.layers:
+        for layer in self.base_model.layers:
             if hasattr(layer, 'kernel_initializer'):
                 if hasattr(layer, 'kernel'):
                     kernel_initializer = layer.kernel_initializer
@@ -176,7 +176,7 @@ class EnsemblerBase():
 
 class EnsemblerMixed():
 
-    def __init__(self, model_funs=[], weight_paths=[], train_funs=[], uncertainty_fun=uncertainty_logvar):
+    def __init__(self, model_funs=[], weight_paths=[], train_funs=[], uncertainty_fun=logvar):
 
         self.model_funs = model_funs
         self.weight_paths = weight_paths
@@ -192,7 +192,7 @@ class EnsemblerMixed():
             # load a model from the teacher ensemble
             model = self.model_funs[model_idx]()
             model.compile()
-            model.load_weights(self.ensembler.model_paths[model_idx])
+            model.load_weights(self.weight_paths[model_idx])
 
             # get predictions for model
             preds.append(model.predict(x, batch_size=batch_size, verbose=False))
@@ -202,46 +202,62 @@ class EnsemblerMixed():
             _ = gc.collect()
 
         # calculate ensemble distribution
-        preds = np.array(preds)
-        ensemble_mean = np.mean(preds, axis=0)
+        preds = tf.stack(preds)
+        ensemble_mean = tf.reduce_mean(preds, axis=0)
         ensemble_uncertainty = self.uncertainty_fun(preds, axis=0)
         return ensemble_mean, ensemble_uncertainty, preds
 
 
-    def train_another_base_model(self, model_fun, x_train, y_train, validation_data, train_fun, save_path):
-
-        print('Training model %d'%(self.num_ensemble + 1))
+    def train_another_base_model(self,x_train, y_train, model_fun, validation_data, train_fun, save_prefix, optimizer=None, loss=None):
 
         # intitialize model
         model = model_fun()
-
+        if optimizer:
+            model.compile(optimizer=optimizer(), loss=loss)
 
         # train model
-        history = train_fun(model, x_train, y_train, validation_data, save_path)
-
+        history = train_fun(model, x_train, y_train, validation_data, save_prefix)
+        
         # save weights
-        self.teacher_base_model.save_weights(save_path)
+        self.weight_paths.append(save_prefix+'.weights.h5')
 
-        # update lists
+        # update ensemble info
         self.model_funs.append(model_fun)
         self.train_funs.append(train_fun)
         self.num_ensemble += 1
-        self.weight_paths.append(save_path)
+
+        del model
+        _ = gc.collect()
 
         return history
 
 
-    def train_ensemble(self, x_train, y_train, validation_data, save_prefix):
+    def train_ensemble(self, x_train, y_train, validation_data, save_prefix, optimizer=None, loss=None):
         self.weight_paths = []
         ensemble_history = []
         for model_idx in range(self.num_ensemble):
             print('Training model %d'%(model_idx + 1))
 
+            # intitialize model
+            model = self.model_funs[model_idx]()
+            if optimizer:
+                model.compile(optimizer=optimizer(), loss=loss)
+
             # train model
-            save_path = save_prefix+'_'+str(model_idx)+'.weights.h5'
-            history = self.train_another_base_model(x_train, y_train, validation_data, self.train_funs[model_idx], save_path)
-            ensemble_history.append(history.history)
+            save_path = save_prefix+'_'+str(model_idx)
+            history = train_fun(model, x_train, y_train, validation_data, save_path)
+            ensemble_history.append(history)
+
+            # save weights
+            self.weight_paths.append(save_path+'.weights.h5')
+
+            del model
+            _ = gc.collect()
+
         return ensemble_history
+
+
+
 
 
 #-----------------------------------------------------------------------------
@@ -250,7 +266,7 @@ class EnsemblerMixed():
 
 
 class DynamicModel(keras.Model):
-    def __init__(self, ensembler=None, model, augment_list=[], max_augs_per_seq=2, 
+    def __init__(self, model, ensembler=None, augment_list=[], max_augs_per_seq=2, 
                  hard_aug=False, finetune=False, inference_aug=False, uncertainty=False, **kwargs):
         super(DynamicModel, self).__init__()
         self.ensembler = ensembler
@@ -380,5 +396,3 @@ class DynamicModel(keras.Model):
     
     def load_weights(self, filepath):
         self.model.load_weights(filepath)
-
-
