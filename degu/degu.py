@@ -112,7 +112,7 @@ class Distiller():
         return save_path, history
 
     def distill_student_dynamic(self, x_train, y_train, model, train_fun, save_prefix, 
-                              validation_data, batch_size=512):
+                                validation_data, batch_size=512):
         """Train student model with dynamic distillation.
         
         Similar to distill_student but computes targets during training
@@ -712,7 +712,7 @@ class DynamicModel(keras.Model):
             tuple: (mean_prediction, uncertainty_estimate)
         """
         preds = []
-        if isinstance(ensembler, EnsemblerMixed):
+        if isinstance(self.ensembler, EnsemblerMixed):
             # Mixed ensemble: different architectures
             for model_idx in range(self.ensembler.num_ensemble):
                 preds.append(self.ensembler.ensemble[model_idx](x))
