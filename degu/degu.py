@@ -5,10 +5,10 @@ import gc
 from . import utils
 
 #-----------------------------------------------------------------------------
-# DEGU classes
+# Distiller classes
 #-----------------------------------------------------------------------------
 
-class DEGU():
+class Distiller():
     """Deep Ensemble with Gaussian Uncertainty (DEGU).
     
     Manages deep learning model ensembles for:
