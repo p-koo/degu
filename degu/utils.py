@@ -7,20 +7,26 @@ from sklearn.metrics import mean_squared_error
 # Useful functions
 #-----------------------------------------------------------------------------
 
+
 def logvar(x, axis=0):
     return tf.math.log(tf.math.reduce_variance(x, axis=axis))
 
 def std(x, axis=0):
     return tf.math.reduce_std(x, axis=axis)
 
+
 #-----------------------------------------------------------------------------
 # Trainging functions
 #-----------------------------------------------------------------------------
 
 
-def train_fun(model, x_train, y_train, validation_data, save_prefix, max_epochs=5, 
-              batch_size=100, es_patience=10, lr_decay=0.1, lr_patience=5):
+def train_standard_fun(model, x_train, y_train, validation_data, loss='mse', 
+                       max_epochs=5, batch_size=100, initial_lr=0.001, es_patience=10, 
+                       lr_decay=0.1, lr_patience=5, **kwargs):
 
+    optimizer = keras.optimizers.Adam(learning_rate=initial_lr)
+    model.compile(optimizer=optimizer, loss=loss)
+    
     # early stopping callback
     es_callback = keras.callbacks.EarlyStopping(monitor='val_loss',
                                                 patience=es_patience,
@@ -39,46 +45,44 @@ def train_fun(model, x_train, y_train, validation_data, save_prefix, max_epochs=
     history = model.fit(x_train, y_train, epochs=max_epochs, batch_size=batch_size, shuffle=True,
                         validation_data=validation_data, callbacks=[es_callback,reduce_lr])
 
-    # save weights
-    save_path = save_prefix+'.weights.h5'
-    model.save_weights(save_path)
-
     return history.history
 
 
-def setup_dynamic_student_model(model_fun, input_shape, augment_list,
-                                hard_aug=True, max_augs_per_seq=2): 
+def train_dynamic_aug_fun(dynamic_model, x_train, y_train, validation_data, loss='mse', 
+                          initial_train=train_standard_fun, initial_lr=0.001, 
+                          max_finetune_epochs=2,  finetune_patience=10, finetune_lr=0.0001, 
+                          lr_decay=0.1, lr_patience=3, batch_size=512, **kwargs):
+
     
-    model = evoaug.RobustModel(model_fun, 
-                               input_shape=input_shape, 
-                               augment_list=augment_list,
-                               max_augs_per_seq=max_augs_per_seq, 
-                               hard_aug=hard_aug)
-    return model
-
-
-def train_dynamic_aug_fun(model, x_train, y_train, validation_data, save_prefix, 
-                          finetune_lr=0.0001, loss='mse'):
-
-    save_path = save_prefix+'_aug'
-    history = train_fun(model, x_train, y_train, validation_data, save_path)
+    optimizer = keras.optimizers.Adam(learning_rate=initial_lr)
+    dynamic_model.compile(optimizer=optimizer, loss=loss)
+    history = initial_train(dynamic_model, x_train, y_train, validation_data)
 
     # settings for finetuning
     finetune_optimizer = keras.optimizers.Adam(learning_rate=finetune_lr)
-    model.compile(finetune_optimizer, loss=loss)
-    model.finetune_mode()
-
+    dynamic_model.model.compile(finetune_optimizer, loss=loss)
+    dynamic_model.finetune_mode()
+   
     # finetune model
-    es_callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=finetune_patience, restore_best_weights=True)
-    reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=lr_decay, patience=lr_patience)
-    history2 = model.fit(x_train, y_train, epochs=max_finetune_epochs, batch_size=batch_size, shuffle=True,
-                         validation_data=(x_valid, y_valid), callbacks=[es_callback, reduce_lr])
+    es_callback = keras.callbacks.EarlyStopping(monitor='val_loss', 
+                                                patience=finetune_patience, 
+                                                restore_best_weights=True)
+    reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', 
+                                                  factor=lr_decay, 
+                                                  patience=lr_patience)
+    history2 = dynamic_model.fit(x_train, y_train, 
+                                 epochs=max_finetune_epochs, 
+                                 batch_size=batch_size, 
+                                 shuffle=True, 
+                                 validation_data=validation_data, 
+                                 callbacks=[es_callback, reduce_lr])
 
-    # save finetune weights
-    model_path = save_path+'_finetune.weights.h5'
-    model.save_weights(model_path)
+    return [history, history2.history]
 
-    return model, model_path, [history, history2.history]
+
+#-----------------------------------------------------------------------------
+# Evaluation functions
+#-----------------------------------------------------------------------------
 
 
 def eval_regression(pred, y):
@@ -86,12 +90,30 @@ def eval_regression(pred, y):
     num_tasks = y.shape[1]
     results = []
     for i in range(num_tasks):
-        mse = mean_squared_error(y[:,i], pred[:,i])
+        mse = metrics.mean_squared_error(y[:,i], pred[:,i])
         pearsonr = stats.pearsonr(y[:,i], pred[:,i])[0]
         spearmanr = stats.spearmanr(y[:,i], pred[:,i])[0]
-        print('Task %d  MSE = %.4f'%(i, mse))
-        print('Task %d  PCC = %.4f'%(i, pearsonr))
-        print('Task %d  SCC = %.4f'%(i, spearmanr))
+        print('Task %d  MSE      = %.4f'%(i, mse))
+        print('Task %d  Pearson  = %.4f'%(i, pearsonr))
+        print('Task %d  Spearman = %.4f'%(i, spearmanr))
         results.append([mse, pearsonr, spearmanr])
     return results
+
+
+
+
+def eval_classification(pred, y):
+    num_tasks = y.shape[1]
+    results = []
+    for i in range(num_tasks):
+        auroc = metrics.roc_auc_score(y[:,i], pred[:,i])
+        aupr = metrics.average_precision_score(y[:,i], pred[:,i])  
+        f1_score = metrics.f1_score(y[:,i], pred[:,i])  
+        print('Task %d  AUROC = %.4f'%(i, auroc))
+        print('Task %d  AUPR  = %.4f'%(i, aupr))
+        print('Task %d  F1    = %.4f'%(i, f1_score))
+        results.append([auroc, aupr, f1_score])
+    return results
+
+
 
