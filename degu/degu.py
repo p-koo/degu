@@ -768,7 +768,8 @@ class DynamicModel(keras.Model):
         # Gradient update
         with tf.GradientTape() as tape:
             y_pred = self(x, training=True)
-            loss = self.compute_loss(y, y_pred, regularization_losses=self.losses)
+            loss = self.compiled_loss(y, y_pred, regularization_losses=self.losses)
+            #loss = self.compute_loss(y, y_pred, regularization_losses=self.losses)
 
         trainable_vars = self.trainable_variables
         gradients = tape.gradient(loss, trainable_vars)
@@ -802,7 +803,8 @@ class DynamicModel(keras.Model):
             y = tf.cast(y, tf.float32)
 
         y_pred = self(x, training=False)  
-        loss = self.compute_loss(y, y_pred, regularization_losses=self.losses)
+        loss = self.compiled_loss(y, y_pred, regularization_losses=self.losses)
+        #loss = self.compute_loss(y, y_pred, regularization_losses=self.losses)
         for metric in self.metrics:
             metric.update_state(y, y_pred)
         return {m.name: m.result() for m in self.metrics}
@@ -883,6 +885,4 @@ class DynamicModel(keras.Model):
         """
         self.model.load_weights(filepath)
 
-
-
-
+    
