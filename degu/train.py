@@ -2,7 +2,7 @@ from tensorflow import keras
 
 
 def train_standard_fun(model, x_train, y_train, validation_data, loss='mse', 
-                       max_epochs=5, batch_size=100, initial_lr=0.001, es_patience=10, 
+                       max_epochs=100, batch_size=100, initial_lr=0.001, es_patience=10, 
                        lr_decay=0.1, lr_patience=5, **kwargs):
     """Standard model training with early stopping and learning rate scheduling.
     
@@ -49,7 +49,7 @@ def train_standard_fun(model, x_train, y_train, validation_data, loss='mse',
 
 def train_dynamic_aug_fun(dynamic_model, x_train, y_train, validation_data, loss='mse', 
                          initial_train=train_standard_fun, initial_lr=0.001, 
-                         max_finetune_epochs=2, finetune_patience=10, finetune_lr=0.0001, 
+                         max_finetune_epochs=30, finetune_patience=5, finetune_lr=0.0001, 
                          lr_decay=0.1, lr_patience=3, batch_size=512, **kwargs):
     """Train model with dynamic augmentation followed by finetuning.
     
