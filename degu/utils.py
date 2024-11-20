@@ -30,19 +30,3 @@ def std(x, axis=0):
     return tf.math.reduce_std(x, axis=axis)
 
 
-def get_model_layers(model):
-    """Get layers from model or model wrapper.
-    
-    Args:
-        model: Model instance or wrapper
-        
-    Returns:
-        list: Model layers
-    """
-    if hasattr(model, 'layers'):
-        return model.layers
-    elif hasattr(model, 'model') and hasattr(model.model, 'layers'):
-        return model.model.layers
-
-
-

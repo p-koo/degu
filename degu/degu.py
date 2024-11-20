@@ -276,7 +276,7 @@ class EnsemblerBase():
         Uses layer initializers to randomize weights and biases.
         """
         # Reset each layer's weights using its initializer
-        for layer in utils.get_model_layers(self.base_model):
+        for layer in get_model_layers(self.base_model):
             if hasattr(layer, 'kernel_initializer'):
                 if hasattr(layer, 'kernel'):
                     kernel_initializer = layer.kernel_initializer
@@ -613,6 +613,24 @@ class EnsemblerDynamic():
                 if hasattr(layer, 'bias') and layer.bias is not None:
                     bias_initializer = layer.bias_initializer
                     layer.bias.assign(bias_initializer(shape=layer.bias.shape))
+
+
+
+def get_model_layers(model):
+    """Get layers from model or model wrapper.
+    
+    Args:
+        model: Model instance or wrapper
+        
+    Returns:
+        list: Model layers
+    """
+    if hasattr(model, 'layers'):
+        return model.layers
+    elif hasattr(model, 'model') and hasattr(model.model, 'layers'):
+        return model.model.layers
+
+
 
 #-----------------------------------------------------------------------------
 # Dynamic model for training model with dynamic augs based on ensemble targets
