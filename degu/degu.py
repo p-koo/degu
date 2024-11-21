@@ -451,82 +451,57 @@ class EnsemblerMixed():
 
 
 class EnsemblerDynamic():
-    """Dynamic ensemble manager with data augmentation capabilities.
+    """Dynamic ensemble manager for deep learning models.
     
-    Manages an ensemble of models with shared architecture but different weights.
-    Supports dynamic data augmentation during training.
+    Manages ensemble of models sharing same architecture but with different weights.
+    Supports dynamic data augmentation during training and uncertainty estimation.
     
     Attributes:
-        base_model: Template model for ensemble
-        weight_paths: Paths to saved model weights
-        uncertainty_fun: Function for uncertainty estimation
-        num_ensemble: Number of active models
-        ensemble: List of model instances
+        base_model: Template model used for ensemble
+        weight_paths: List of paths to saved model weights
+        uncertainty_fun: Function to compute prediction uncertainty
+        num_ensemble: Number of models in ensemble
     """
     
     def __init__(self, base_model, weight_paths=[], uncertainty_fun=utils.logvar):
         """Initialize dynamic ensemble manager.
         
         Args:
-            base_model: Base model to clone for ensemble
-            weight_paths: Paths to saved weights
-            uncertainty_fun: Function for computing uncertainty
+            base_model: Base model to use as template
+            weight_paths: List of paths to saved weights
+            uncertainty_fun: Function to compute uncertainty estimates
         """
-        # Initialize core components for ensemble management
         self.uncertainty_fun = uncertainty_fun
         self.base_model = base_model    
         self.weight_paths = weight_paths    
         self.num_ensemble = len(weight_paths)
-        self.ensemble = []
+
+    def predict(self, x, batch_size=512):
+        """Generate predictions from ensemble models.
         
-        # Build ensemble if weights are provided
-        if len(self.weight_paths) > 0:
-            self.build_ensemble()
-        
-    def build_ensemble(self, weight_paths=None, **kwargs):
-        """Construct ensemble from saved weights.
+        Loads each model's weights and gets predictions, then combines them
+        to compute ensemble mean and uncertainty.
         
         Args:
-            weight_paths: Optional new weight paths
-            **kwargs: Additional model parameters
-        """
-        self.ensemble = []  # Reset ensemble list
-        
-        # Compile and load weights for each model
-        for model_idx in range(self.num_ensemble):
-            model = self.base_model
-            model.compile()
-            if weight_paths is None:
-                model.load_weights(self.weight_paths[model_idx])
-            else:
-                model.load_weights(weight_paths[model_idx])
-            self.ensemble.append(model)
+            x: Input data to predict on
+            batch_size: Batch size for predictions
             
-        # Update paths if new ones provided
-        if weight_paths is not None:
-            self.weight_paths = weight_paths
-
-    def predict(self, x, batch_size=512, **kwargs):
-        """Generate predictions with uncertainty from ensemble.
-        
-        Args:
-            x: Input data
-            batch_size: Batch size for prediction
-            **kwargs: Additional prediction parameters
-
         Returns:
-            tuple: (ensemble_mean, uncertainty, individual_predictions)
+            tuple: (ensemble_mean, uncertainty_estimates, individual_predictions)
         """
-        # Get predictions from all models
         preds = []
         for model_idx in range(self.num_ensemble):
-            preds.append(self.ensemble[model_idx].predict(x, batch_size=batch_size, verbose=False))
+            # Load weights for current model
+            self.base_model.load_weights(self.weight_paths[model_idx])
             
+            # Get predictions from current model
+            preds.append(self.base_model.predict(x, batch_size=batch_size, verbose=False))
+
         # Calculate ensemble statistics
         preds = tf.stack(preds)
         ensemble_mean = tf.reduce_mean(preds, axis=0)
         ensemble_uncertainty = self.uncertainty_fun(preds, axis=0)
-        return ensemble_mean, ensemble_uncertainty, preds
+        return ensemble_mean, ensemble_uncertainty, preds    
     
     def train(self, x_train, y_train, num_ensemble, train_fun, validation_data, save_prefix, 
               augment_list=[], max_augs_per_seq=2, hard_aug=True, **kwargs):
@@ -536,80 +511,84 @@ class EnsemblerDynamic():
             x_train: Training features
             y_train: Training labels
             num_ensemble: Number of models to train
-            train_fun: Training function
+            train_fun: Function handling model training
             validation_data: Validation dataset
             save_prefix: Prefix for saved weights
+            augment_list: List of augmentation operations
+            max_augs_per_seq: Maximum augmentations per sequence
+            hard_aug: Whether to use hard augmentation mode
+            **kwargs: Additional training parameters
+            
+        Returns:
+            list: Training histories for each model
+        """
+        ensemble_history = []
+        for model_idx in range(num_ensemble):
+            print('Training model %d'%(model_idx + 1))
+    
+            # Train individual model with augmentation
+            history, save_path = self.train_another_model(x_train, y_train, 
+                                                        train_fun, 
+                                                        validation_data, 
+                                                        save_prefix+'_'+str(model_idx), 
+                                                        **kwargs)
+                
+            # Store training history
+            ensemble_history.append(history)
+        return ensemble_history
+    
+    def train_another_model(self, x_train, y_train, train_fun, validation_data, save_prefix, 
+                          augment_list=[], max_augs_per_seq=2, hard_aug=True, **kwargs):
+        """Train and save a single model for ensemble.
+        
+        Args:
+            x_train: Training features  
+            y_train: Training labels
+            train_fun: Training function
+            validation_data: Validation dataset
+            save_prefix: Prefix for weight file
             augment_list: Data augmentation operations
             max_augs_per_seq: Maximum augmentations per sequence
             hard_aug: Use hard augmentation mode
             **kwargs: Additional training parameters
-
-        Returns:
-            list: Training histories
-        """
-        ensemble_history = []
-        
-        # Train specified number of models
-        for model_idx in range(num_ensemble):
-            print('Training model %d'%(model_idx + 1))
             
-            # Train individual model with augmentation
-            history, save_path = self.train_another_model(
-                x_train, y_train, 
-                train_fun,
-                validation_data,
-                save_prefix+'_'+str(model_idx),
-                augment_list=augment_list,
-                max_augs_per_seq=max_augs_per_seq,
-                hard_aug=hard_aug,
-                **kwargs
-            )
-            ensemble_history.append(history)
-        return ensemble_history
-       
-    def train_another_model(self, x_train, y_train, train_fun, validation_data, save_prefix,
-                          augment_list=[], max_augs_per_seq=2, hard_aug=True, **kwargs):
-        """Train and add single model to ensemble.
-        
-        Args:
-            Similar to train() method
-
         Returns:
             tuple: (training_history, weights_save_path)
         """
-        # Reset weights for new model
+        # Reset weights to new random values
         self._reinitialize_model_weights()
-        
-        # Create dynamic model with augmentation
-        base_model = DynamicModel(
-            self.base_model,
-            augment_list=augment_list,
-            max_augs_per_seq=max_augs_per_seq,
-            hard_aug=hard_aug
-        )
 
-        # Train and save model
+        # Create model with augmentation capabilities
+        base_model = degu.DynamicModel(self.base_model, 
+                                     augment_list=augment_list, 
+                                     max_augs_per_seq=max_augs_per_seq, 
+                                     hard_aug=hard_aug)
+
+        # Train model
         history = train_fun(base_model, x_train, y_train, validation_data, **kwargs)
+
+        # Save trained weights
         save_path = save_prefix+'.weights.h5'
         base_model.save_weights(save_path)
         
         # Update ensemble tracking
         self.weight_paths.append(save_path)
         self.num_ensemble += 1
-        self.ensemble.append(base_model)
         return history, save_path
 
     def _reinitialize_model_weights(self):
         """Reset model weights to new random values.
         
-        Reinitializes weights and biases for each layer using defined initializers.
+        Reinitializes weights and biases of each layer using their defined initializers.
+        Used to ensure different starting points for each ensemble model.
         """
-        # Reset weights for each layer using initializers
         for layer in get_model_layers(self.base_model):
             if hasattr(layer, 'kernel_initializer'):
+                # Reset kernel weights if present
                 if hasattr(layer, 'kernel'):
                     kernel_initializer = layer.kernel_initializer
                     layer.kernel.assign(kernel_initializer(shape=layer.kernel.shape))
+                # Reset bias weights if present
                 if hasattr(layer, 'bias') and layer.bias is not None:
                     bias_initializer = layer.bias_initializer
                     layer.bias.assign(bias_initializer(shape=layer.bias.shape))
